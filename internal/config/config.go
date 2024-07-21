@@ -10,17 +10,31 @@ import (
 )
 
 type Config struct {
-	Env         string `yaml:"env" env-default:"local"`
-	StoragePath string `yaml:"storage_path" env-required:"true"`
-	HTTPServer  `yaml:"http_server"`
+	Env         string     `yaml:"env" env-default:"local"`
+	StoragePath string     `yaml:"storage_path" env-required:"true"`
+	HTTPServer  HTTPServer `yaml:"http_server"`
+	Kafka       Kafka      `yaml:"kafka"`
+	Database    Database   `yaml:"database"`
 }
 
 type HTTPServer struct {
-	Address     string
+	Addr        string
 	Timeout     time.Duration
 	IdleTimeout time.Duration
-	User        string
-	Password    string
+}
+
+type Kafka struct {
+	Broker string `yaml:"broker" env-required:"true"`
+	Topic  string `yaml:"topic" env-required:"true"`
+}
+
+type Database struct {
+	User     string
+	Password string
+	Host     string
+	Port     string
+	SSLMode  string
+	Name     string
 }
 
 func MustLoad() *Config {
@@ -40,11 +54,21 @@ func MustLoad() *Config {
 	cfg := &Config{
 		Env: getEnv("ENV", "local"),
 		HTTPServer: HTTPServer{
-			Address:     getEnv("HTTP_SERVER_ADDRESS", "localhost:8080"),
+			Addr:        getEnv("HTTP_SERVER_ADDRESS", "localhost:8080"),
 			Timeout:     getDurationEnv("HTTP_SERVER_TIMEOUT", 4*time.Second),
 			IdleTimeout: getDurationEnv("HTTP_SERVER_IDLE_TIMEOUT", 60*time.Second),
-			User:        getEnvOrPanic("HTTP_SERVER_USER"),
-			Password:    getEnvOrPanic("HTTP_SERVER_PASSWORD"),
+		},
+		Kafka: Kafka{
+			Broker: getEnv("KAFKA_BROKER", "localhost:9092"),
+			Topic:  getEnv("KAFKA_TOPIC", "messages"),
+		},
+		Database: Database{
+			User:     getEnvOrPanic("DB_USER"),
+			Password: getEnvOrPanic("DB_PASSWORD"),
+			Host:     getEnv("DB_HOST", "localhost"),
+			Port:     getEnv("DB_PORT", "5432"),
+			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+			Name:     getEnv("DB_NAME", "messages"),
 		},
 	}
 
