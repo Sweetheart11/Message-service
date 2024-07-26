@@ -1,10 +1,10 @@
 build:
-	@go build -o bin/timetracker cmd/main.go 
+	@go build -o bin/message-processor cmd/main.go 
 
 run: build
 	@sudo docker-compose up -d
 	@$(MAKE) migrations_up
-	@./bin/timetracker --config=.env 
+	@./bin/message-processor --config=.env 
 
 test:
 	@go test ./... -v

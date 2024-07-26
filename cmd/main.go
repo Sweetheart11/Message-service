@@ -42,7 +42,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	go kafkaService.ConsumeMessages(context.Background(), store, log, "localhost:9092", "messages")
+	consumer := kafkaService.NewConsumer(store, log, cfg.Kafka.Broker, cfg.Kafka.Topic, cfg.Kafka.MaxWorkers)
+	go consumer.ConsumeMessages(context.Background())
 
 	router := chi.NewRouter()
 
@@ -50,15 +51,22 @@ func main() {
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Logger)
 
-	writer := &kafka.Writer{
+	producer := &kafka.Writer{
 		Addr:     kafka.TCP(cfg.Kafka.Broker),
 		Topic:    cfg.Kafka.Topic,
 		Balancer: &kafka.LeastBytes{},
 	}
-	defer writer.Close()
+	defer producer.Close()
 
-	router.Post("/message", createmessage.NewMessage(log, service.NewMessageService(store, writer, log)))
-	router.Get("/message", getstats.GetStats(log, service.NewMessageService(store, writer, log)))
+	router.Route("/", func(r chi.Router) {
+		r.Use(middleware.BasicAuth("message-processing-service", map[string]string{
+			cfg.HTTPServer.User: cfg.HTTPServer.Password,
+		}))
+
+		r.Post("/message", createmessage.NewMessage(log, service.NewMessageService(store, producer, log)))
+
+	})
+	router.Get("/message", getstats.GetStats(log, service.NewMessageService(store, producer, log)))
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)

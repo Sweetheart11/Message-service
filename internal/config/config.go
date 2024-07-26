@@ -4,37 +4,41 @@ import (
 	"flag"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Env         string     `yaml:"env" env-default:"local"`
-	StoragePath string     `yaml:"storage_path" env-required:"true"`
-	HTTPServer  HTTPServer `yaml:"http_server"`
-	Kafka       Kafka      `yaml:"kafka"`
-	Database    Database   `yaml:"database"`
+	Env         string
+	StoragePath string `env-required:"true"`
+	HTTPServer  HTTPServer
+	Kafka       Kafka
+	Database    Database
 }
 
 type HTTPServer struct {
-	Addr        string
+	Addr        string `env-default:"localhost:8080"`
 	Timeout     time.Duration
 	IdleTimeout time.Duration
+	User        string `env-required:"true"`
+	Password    string `env-required:"true"`
 }
 
 type Kafka struct {
-	Broker string `yaml:"broker" env-required:"true"`
-	Topic  string `yaml:"topic" env-required:"true"`
+	Broker     string `env-required:"true"`
+	Topic      string `env-required:"true"`
+	MaxWorkers int    `env-default:"10"`
 }
 
 type Database struct {
-	User     string
-	Password string
-	Host     string
-	Port     string
-	SSLMode  string
-	Name     string
+	User     string `env-required:"true"`
+	Password string `env-required:"true"`
+	Host     string `env-required:"true"`
+	Port     string `env-required:"true"`
+	SSLMode  string `env-default:"disable"`
+	Name     string `env-required:"true"`
 }
 
 func MustLoad() *Config {
@@ -57,10 +61,13 @@ func MustLoad() *Config {
 			Addr:        getEnv("HTTP_SERVER_ADDRESS", "localhost:8080"),
 			Timeout:     getDurationEnv("HTTP_SERVER_TIMEOUT", 4*time.Second),
 			IdleTimeout: getDurationEnv("HTTP_SERVER_IDLE_TIMEOUT", 60*time.Second),
+			User:        getEnvOrPanic("HTTP_SERVER_USER"),
+			Password:    getEnvOrPanic("HTTP_SERVER_PASSWORD"),
 		},
 		Kafka: Kafka{
-			Broker: getEnv("KAFKA_BROKER", "localhost:9092"),
-			Topic:  getEnv("KAFKA_TOPIC", "messages"),
+			Broker:     getEnv("KAFKA_BROKER", "localhost:9092"),
+			Topic:      getEnv("KAFKA_TOPIC", "messages"),
+			MaxWorkers: getEnvInt("KAFKA_MAX_WORKERS", 10),
 		},
 		Database: Database{
 			User:     getEnvOrPanic("DB_USER"),
@@ -80,6 +87,19 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		return defaultValue
+	}
+
+	v, err := strconv.Atoi(value)
+	if err != nil {
+		log.Fatalf("invalid value for %s: %s", key, v)
+	}
+	return v
 }
 
 func getEnvOrPanic(key string) string {

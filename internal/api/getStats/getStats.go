@@ -19,10 +19,13 @@ func GetStats(log *slog.Logger, svc MessageService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "api.handler.GetStats"
 
+		w.Header().Set("Content-Type", "application/json")
+
 		stats, err := svc.GetStats(r.Context())
 		if err != nil {
 			log.Error("failed to fetch statistics", "op", op, "err", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode("failed to fetch statistics")
 			return
 		}
 
@@ -34,6 +37,7 @@ func GetStats(log *slog.Logger, svc MessageService) http.HandlerFunc {
 		if err := json.NewEncoder(w).Encode(res); err != nil {
 			log.Error("failed to encode response", "op", op, "err", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode("failed to fetch statistics")
 			return
 		}
 

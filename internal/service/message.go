@@ -4,41 +4,47 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
+	"github.com/Sweethear11/msg-processing-service/internal/model"
 	storage "github.com/Sweethear11/msg-processing-service/internal/storage/postgres"
 	"github.com/segmentio/kafka-go"
 )
 
 type MessageService struct {
-	db          *storage.Storage
-	kafkaWriter *kafka.Writer
-	log         *slog.Logger
+	db       *storage.Storage
+	producer *kafka.Writer
+	log      *slog.Logger
 }
 
-func NewMessageService(db *storage.Storage, kafkaWriter *kafka.Writer, log *slog.Logger) *MessageService {
+func NewMessageService(db *storage.Storage, producer *kafka.Writer, log *slog.Logger) *MessageService {
 	return &MessageService{
-		db:          db,
-		kafkaWriter: kafkaWriter,
-		log:         log,
+		db:       db,
+		producer: producer,
+		log:      log,
 	}
 }
 
-func (s *MessageService) CreateMessage(ctx context.Context, message string) error {
+func (s *MessageService) CreateMessage(ctx context.Context, message string) (model.Message, error) {
 	op := "service.message.CreateMessage"
 	id, err := s.db.CreateMessage(ctx, message)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return model.Message{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	err = s.kafkaWriter.WriteMessages(ctx, kafka.Message{
+	err = s.producer.WriteMessages(ctx, kafka.Message{
 		Key:   []byte(fmt.Sprintf("%d", id)),
 		Value: []byte(message),
 	})
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return model.Message{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	return model.Message{
+		ID:        id,
+		Message:   message,
+		CreatedAt: time.Now(),
+	}, nil
 }
 
 func (s *MessageService) GetStats(ctx context.Context) (map[string]int, error) {
