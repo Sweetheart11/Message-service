@@ -94,7 +94,7 @@ func main() {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Error("failed to stop server", slog.StringValue(err.Error()))
+		log.Error("failed to stop server", "err", slog.StringValue(err.Error()))
 
 		return
 	}

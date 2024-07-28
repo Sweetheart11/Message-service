@@ -65,7 +65,7 @@ func MustLoad() *Config {
 			Password:    getEnvOrPanic("HTTP_SERVER_PASSWORD"),
 		},
 		Kafka: Kafka{
-			Broker:     getEnv("KAFKA_BROKER", "localhost:9092"),
+			Broker:     getEnv("KAFKA_BROKER", "kafka:9092"),
 			Topic:      getEnv("KAFKA_TOPIC", "messages"),
 			MaxWorkers: getEnvInt("KAFKA_MAX_WORKERS", 10),
 		},
@@ -97,7 +97,7 @@ func getEnvInt(key string, defaultValue int) int {
 
 	v, err := strconv.Atoi(value)
 	if err != nil {
-		log.Fatalf("invalid value for %s: %s", key, v)
+		log.Fatalf("invalid value for %s: %s", value, err)
 	}
 	return v
 }
