@@ -39,6 +39,7 @@ func (s *Storage) CreateMessage(ctx context.Context, msg string) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", op, err)
 	}
+	defer stmt.Close()
 
 	err = stmt.QueryRowContext(ctx, msg).Scan(&id)
 	if err != nil {
@@ -52,31 +53,21 @@ func (s *Storage) GetStats(ctx context.Context) (map[string]int, error) {
 	const op = "storage.postgres.getStats"
 
 	stats := make(map[string]int)
-	stmt, err := s.db.PrepareContext(ctx, "SELECT COUNT(*) as count FROM messages WHERE processed = TRUE")
+
+	var count int
+	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM messages WHERE processed = TRUE").Scan(&count)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	rows, err := stmt.QueryContext(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	for rows.Next() {
-		stats["processed"]++
-	}
+	stats["processed"] = count
 
-	stmt, err = s.db.PrepareContext(ctx, "SELECT COUNT(*) as count FROM messages WHERE processed = FALSE")
+	err = s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM messages WHERE processed = FALSE").Scan(&count)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	rows, err = stmt.QueryContext(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	for rows.Next() {
-		stats["unprocessed"]++
-	}
+	stats["unprocessed"] = count
 
 	return stats, nil
 }
