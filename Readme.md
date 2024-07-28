@@ -27,3 +27,19 @@ curl -u user:pass \
   --data '{"message":"test_message"}' \
   http://localhost:8080/message
 ```
+
+Пример .env файла находмтся в .env_example:
+
+```console
+ENV=local
+HTTP_SERVER_ADDRESS=localhost:8080
+HTTP_SERVER_USER=user
+HTTP_SERVER_PASSWORD=pass
+
+DB_USER=postgres
+DB_PASSWORD=example
+DB_HOST=localhost
+DB_PORT=5432
+DB_SSLMODE=disable
+DB_NAME=postgres
+```
