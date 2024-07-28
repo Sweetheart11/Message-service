@@ -14,7 +14,7 @@ docker-compose up
 
 Тестировать работу можно по средствам, например, curl или postman.
 
-Для просмотре статистики
+Для просмотра статистики
 ```console
 curl http://localhost:8080/message
 ```
@@ -24,6 +24,6 @@ curl http://localhost:8080/message
 curl -u user:pass \
   --header "Content-Type: application/json" \
   --request POST \
-  --data '{"mesage":"test_message"}' \
+  --data '{"message":"test_message"}' \
   http://localhost:8080/message
 ```
